@@ -20,10 +20,8 @@
 +    dragSection = "";
 +    dragFromIndex = -1;
 +    dragCurrentIndex = -1;
-+    if (dragGhostSource && dragGhostSource.hasOwnProperty("loader")) {
-+      // Restore widget opacity if the loader item exists
-+      var loaderItem = dragGhostSource.children[0]?.item;
-+      if (loaderItem) loaderItem.opacity = 1.0;
++    if (dragGhostSource && dragGhostSource.children[0] && dragGhostSource.children[0].item) {
++      dragGhostSource.children[0].item.opacity = 1.0;
 +    }
 +    dragGhostSource = null;
 +  }
@@ -116,12 +114,18 @@
 +    if (!sectionItem) return;
 +
 +    // Collect delegates that have visualOffset (BarWidgetLoader instances)
++    // Track model indices consistently with findDelegateAt
 +    var delegates = [];
++    var modelIndices = [];
++    var mIdx = 0;
 +    for (var i = 0; i < sectionItem.children.length; i++) {
 +      var child = sectionItem.children[i];
-+      if (child && child.hasOwnProperty("visualOffset") && child.hasOwnProperty("widgetId")) {
++      if (!child || !child.hasOwnProperty("widgetId")) continue;
++      if (child.hasOwnProperty("visualOffset")) {
 +        delegates.push(child);
++        modelIndices.push(mIdx);
 +      }
++      mIdx++;
 +    }
 +    if (delegates.length === 0) return;
 +
@@ -132,14 +136,15 @@
 +    // Determine new index based on cursor position relative to delegate midpoints
 +    var newIndex = dragFromIndex;
 +    for (var j = 0; j < delegates.length; j++) {
++      var mi = modelIndices[j];
 +      if (delegates[j] === dragGhostSource) continue;
 +      var pos = isVert ? delegates[j].y : delegates[j].x;
 +      var size = isVert ? delegates[j].height : delegates[j].width;
 +      var mid = pos + size / 2;
-+      if (dragFromIndex < j && cursorPos > mid) {
-+        newIndex = j;
-+      } else if (dragFromIndex > j && cursorPos < mid) {
-+        newIndex = Math.min(newIndex, j);
++      if (dragFromIndex < mi && cursorPos > mid) {
++        newIndex = mi;
++      } else if (dragFromIndex > mi && cursorPos < mid) {
++        newIndex = Math.min(newIndex, mi);
 +      }
 +    }
 +    dragCurrentIndex = newIndex;
@@ -148,20 +153,21 @@
 +    var draggedSize = (isVert ? dragGhostSource.height : dragGhostSource.width)
 +                    + Settings.data.bar.widgetSpacing;
 +    for (var k = 0; k < delegates.length; k++) {
++      var mk = modelIndices[k];
 +      if (delegates[k] === dragGhostSource) {
 +        delegates[k].visualOffset = 0;
 +        continue;
 +      }
 +      if (dragFromIndex < dragCurrentIndex) {
 +        // Dragged forward: items between from+1..current shift backward
-+        if (k > dragFromIndex && k <= dragCurrentIndex) {
++        if (mk > dragFromIndex && mk <= dragCurrentIndex) {
 +          delegates[k].visualOffset = -draggedSize;
 +        } else {
 +          delegates[k].visualOffset = 0;
 +        }
 +      } else if (dragFromIndex > dragCurrentIndex) {
 +        // Dragged backward: items between current..from-1 shift forward
-+        if (k >= dragCurrentIndex && k < dragFromIndex) {
++        if (mk >= dragCurrentIndex && mk < dragFromIndex) {
 +          delegates[k].visualOffset = draggedSize;
 +        } else {
 +          delegates[k].visualOffset = 0;

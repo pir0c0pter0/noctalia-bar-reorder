@@ -45,11 +45,13 @@ Item {
     width: 0
     height: 0
 
+    // Map global cursor coordinates to overlay-local space
+    property point localCursor: overlay.mapFromItem(null, overlay.cursorX, overlay.cursorY)
     x: overlay.isVertical
        ? Math.round((overlay.width - width) / 2)
-       : Math.round(overlay.cursorX - width / 2)
+       : Math.round(localCursor.x - width / 2)
     y: overlay.isVertical
-       ? Math.round(overlay.cursorY - height / 2)
+       ? Math.round(localCursor.y - height / 2)
        : Math.round((overlay.height - height) / 2)
 
     scale: 1.05
